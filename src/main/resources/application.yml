@@ -9,3 +9,7 @@ logging:
     org:
       springframework:
         r2dbc: DEBUG
+
+server:
+  error:
+    include-stacktrace: on_param
