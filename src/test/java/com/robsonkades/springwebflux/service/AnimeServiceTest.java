@@ -2,18 +2,28 @@ package com.robsonkades.springwebflux.service;
 
 import reactor.blockhound.BlockHound;
 import reactor.blockhound.BlockingOperationError;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.test.StepVerifier;
 
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
+import org.mockito.BDDMockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.robsonkades.springwebflux.domain.Anime;
 import com.robsonkades.springwebflux.repository.AnimeRepository;
@@ -50,4 +60,47 @@ public class AnimeServiceTest {
         }
     }
 
+    @BeforeEach
+    public void each() {
+        BDDMockito
+                .when(animeRepository.findAll())
+                .thenReturn(Flux.just(anime));
+
+        BDDMockito
+                .when(animeRepository.findById(ArgumentMatchers.anyInt()))
+                .thenReturn(Mono.just(anime));
+    }
+
+    @Test
+    @DisplayName("findAll returns a flux of anime")
+    public void findAll_ReturnFluxOfAnime_WhenSuccessful() {
+        StepVerifier.create(animeService.findAll())
+                .expectSubscription()
+                .expectNext(anime)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    @DisplayName("findById returns Mono with anime when it exists")
+    public void findById_ReturnMonoOfAnime_WhenSuccessful() {
+        StepVerifier.create(animeService.findById(1))
+                .expectSubscription()
+                .expectNext(anime)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    @DisplayName("findById returns Mono error when anime does not exist")
+    public void findById_ReturnMonoOfError_WhenEmptyMonoIsReturned() {
+        BDDMockito
+                .when(animeRepository.findById(ArgumentMatchers.anyInt()))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(animeService.findById(1))
+                .expectSubscription()
+                .expectError(ResponseStatusException.class)
+                .verify();
+    }
 }
