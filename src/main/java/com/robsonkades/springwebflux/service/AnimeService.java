@@ -2,6 +2,7 @@ package com.robsonkades.springwebflux.service;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import org.springframework.stereotype.Service;
 
@@ -16,5 +17,9 @@ public class AnimeService {
 
     public Flux<Anime> findAll() {
         return animeRepository.findAll();
+    }
+
+    public Mono<Anime> findById(Integer id) {
+        return animeRepository.findById(id);
     }
 }
