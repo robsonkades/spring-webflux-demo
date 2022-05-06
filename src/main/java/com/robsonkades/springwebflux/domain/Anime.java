@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.With;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
@@ -20,6 +20,6 @@ import org.springframework.data.relational.core.mapping.Table;
 public class Anime {
     @Id
     private Integer id;
-    @NotNull
+    @NotBlank
     private String name;
 }

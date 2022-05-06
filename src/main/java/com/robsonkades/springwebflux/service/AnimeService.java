@@ -29,4 +29,15 @@ public class AnimeService {
     private <T> Mono<T> monoResponseStatusNotFound() {
         return Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
+
+    public Mono<Anime> save(Anime anime) {
+        return animeRepository.save(anime);
+    }
+
+    public Mono<Void> update(Anime anime) {
+        return findById(anime.getId())
+                .map(animeFound -> anime.withId(anime.getId()))
+                .flatMap(animeRepository::save)
+                .thenEmpty(Mono.empty());
+    }
 }
