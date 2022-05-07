@@ -5,6 +5,7 @@ import reactor.blockhound.BlockingOperationError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.test.StepVerifier;
 
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -21,8 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 
 import com.robsonkades.springwebflux.domain.Anime;
 import com.robsonkades.springwebflux.exception.CustomAttributes;
@@ -45,7 +48,10 @@ public class AnimeControllerIT {
 
     @BeforeAll
     public static void blockHoundSetup() {
-        BlockHound.install();
+        BlockHound
+                .builder()
+                .allowBlockingCallsInside("java.io.RandomAccessFile", "readBytes")
+                .install();
     }
 
     @Test
@@ -71,6 +77,10 @@ public class AnimeControllerIT {
 
         BDDMockito
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
+                .thenReturn(Mono.just(anime));
+
+        BDDMockito
+                .when(animeRepository.save(AnimeCreator.createAnimeToBeSaved()))
                 .thenReturn(Mono.just(anime));
     }
 
@@ -127,5 +137,35 @@ public class AnimeControllerIT {
                 .expectBody()
                 .jsonPath("$.status").isEqualTo(404)
                 .jsonPath("$.detail").isEqualTo("This is an error");
+    }
+
+    @Test
+    @DisplayName("save creates an anime when successful")
+    public void save_CreatesAnime_WhenSuccessful() {
+        Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
+        webTestClient
+                .post()
+                .uri("/animes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(animeToBeSaved))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(Anime.class)
+                .isEqualTo(anime);
+    }
+
+    @Test
+    @DisplayName("save returns mono error with bad request when name is empty")
+    public void save_ReturnsError_WhenNameIsEmpty() {
+        Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved().withName("");
+        webTestClient
+                .post()
+                .uri("/animes/")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(animeToBeSaved))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(400);
     }
 }
