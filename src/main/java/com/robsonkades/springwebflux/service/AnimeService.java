@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.robsonkades.springwebflux.domain.Anime;
@@ -43,5 +47,17 @@ public class AnimeService {
     public Mono<Void> delete(Integer id) {
         return findById(id)
                 .flatMap(animeRepository::delete);
+    }
+
+    @Transactional
+    public Flux<Anime> saveAll(List<Anime> anime) {
+        return animeRepository.saveAll(anime)
+                .doOnNext(this::throwResponseStatusExceptionWhenEmptyName);
+    }
+
+    public void throwResponseStatusExceptionWhenEmptyName(Anime anime) {
+        if (!StringUtils.hasText(anime.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid name");
+        }
     }
 }
