@@ -35,7 +35,7 @@ public class AnimeController {
     }
 
     @GetMapping(path = "{id}")
-    public Mono<Anime> finById(@PathVariable("id") Integer id) {
+    public Mono<Anime> findById(@PathVariable("id") Integer id) {
         return animeService.findById(id);
     }
 
@@ -47,13 +47,13 @@ public class AnimeController {
 
     @PutMapping(path = "{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> update(@PathVariable() Integer id,  @Valid @RequestBody Anime anime) {
+    public Mono<Void> update(@PathVariable() Integer id, @Valid @RequestBody Anime anime) {
         return animeService.update(anime.withId(id));
     }
 
     @DeleteMapping(path = "{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public Mono<Void> update(@PathVariable() Integer id) {
+    public Mono<Void> delete(@PathVariable() Integer id) {
         return animeService.delete(id);
     }
 }
