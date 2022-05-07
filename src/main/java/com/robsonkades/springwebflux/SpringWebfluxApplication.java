@@ -9,7 +9,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SpringWebfluxApplication {
 
     static {
-        BlockHound.install();
+        BlockHound
+                .builder()
+                .allowBlockingCallsInside("java.io.RandomAccessFile", "readBytes")
+                .install();
     }
 
     public static void main(String[] args) {
