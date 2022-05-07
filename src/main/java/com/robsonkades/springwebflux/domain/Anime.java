@@ -20,6 +20,6 @@ import org.springframework.data.relational.core.mapping.Table;
 public class Anime {
     @Id
     private Integer id;
-    @NotBlank
+    @NotBlank(message = "Field must not be blank")
     private String name;
 }

@@ -52,7 +52,7 @@ public class AnimeController {
     @PostMapping("batch")
     @ResponseStatus(HttpStatus.CREATED)
     public Flux<Anime> batch(@RequestBody List<Anime> anime) {
-        return animeService.saveAll(anime);
+        return animeService.saveBatch(anime);
     }
 
     @PutMapping(path = "{id}")

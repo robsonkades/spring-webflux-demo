@@ -50,7 +50,7 @@ public class AnimeService {
     }
 
     @Transactional
-    public Flux<Anime> saveAll(List<Anime> anime) {
+    public Flux<Anime> saveBatch(List<Anime> anime) {
         return animeRepository.saveAll(anime)
                 .doOnNext(this::throwResponseStatusExceptionWhenEmptyName);
     }
