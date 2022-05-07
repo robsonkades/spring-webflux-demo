@@ -5,7 +5,6 @@ import reactor.blockhound.BlockingOperationError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.test.StepVerifier;
 
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +81,14 @@ public class AnimeControllerIT {
         BDDMockito
                 .when(animeRepository.save(AnimeCreator.createAnimeToBeSaved()))
                 .thenReturn(Mono.just(anime));
+
+        BDDMockito
+                .when(animeRepository.delete(ArgumentMatchers.any(Anime.class)))
+                .thenReturn(Mono.empty());
+
+        BDDMockito
+                .when(animeRepository.save(AnimeCreator.createValidAnime()))
+                .thenReturn(Mono.empty());
     }
 
     @Test
@@ -167,5 +174,62 @@ public class AnimeControllerIT {
                 .expectStatus().isBadRequest()
                 .expectBody()
                 .jsonPath("$.status").isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("delete removes the anime when successful")
+    public void delete_RemovesAnime_WhenSuccessful() {
+        webTestClient
+                .delete()
+                .uri("/animes/{id}", 1)
+                .exchange()
+                .expectStatus().isNoContent();
+    }
+
+    @Test
+    @DisplayName("delete returns mono error when anime does not exist")
+    public void delete_ReturnsMonoError_WhenEmptyMonoIsReturned() {
+        BDDMockito
+                .when(animeRepository.findById(ArgumentMatchers.anyInt()))
+                .thenReturn(Mono.empty());
+
+        webTestClient
+                .delete()
+                .uri("/animes/{id}", 1)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("update save updated anime and return empty mono when successful")
+    public void update_SaveUpdatedAnime_WhenSuccessful() {
+        webTestClient
+                .put()
+                .uri("/animes/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(AnimeCreator.createValidAnime()))
+                .exchange()
+                .expectStatus().isNoContent();
+
+    }
+
+    @Test
+    @DisplayName("update returns Mono error when anime does exist")
+    public void update_ReturnMonoError_WhenEmptyMonoIsReturned() {
+        BDDMockito
+                .when(animeRepository.findById(ArgumentMatchers.anyInt()))
+                .thenReturn(Mono.empty());
+
+        webTestClient
+                .put()
+                .uri("/animes/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(AnimeCreator.createValidAnime()))
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(404);
     }
 }
