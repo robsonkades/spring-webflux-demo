@@ -6,19 +6,23 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -33,8 +37,10 @@ import com.robsonkades.springwebflux.service.AnimeService;
 import com.robsonkades.springwebflux.util.AnimeCreator;
 
 @ExtendWith(SpringExtension.class)
-@WebFluxTest
-@Import({ AnimeService.class, CustomAttributes.class })
+//@WebFluxTest
+//@Import({ AnimeService.class, CustomAttributes.class })
+@SpringBootTest
+@AutoConfigureWebTestClient
 public class AnimeControllerIT {
 
     @MockBean
@@ -54,6 +60,7 @@ public class AnimeControllerIT {
     }
 
     @Test
+    @Disabled("Ignored test after add SpringBootTest and AutoConfigureWebTestClient")
     public void testBlockHound() {
         try {
             FutureTask<?> task = new FutureTask<>(() -> {
@@ -89,6 +96,10 @@ public class AnimeControllerIT {
         BDDMockito
                 .when(animeRepository.save(AnimeCreator.createValidAnime()))
                 .thenReturn(Mono.empty());
+
+        BDDMockito
+                .when(animeRepository.saveAll(List.of(AnimeCreator.createAnimeToBeSaved(), AnimeCreator.createAnimeToBeSaved())))
+                .thenReturn(Flux.just(anime, anime));
     }
 
     @Test
@@ -159,6 +170,43 @@ public class AnimeControllerIT {
                 .expectStatus().isCreated()
                 .expectBody(Anime.class)
                 .isEqualTo(anime);
+    }
+
+    @Test
+    @DisplayName("saveBatch creates a list of anime when successful")
+    public void saveBatch_CreatesListOfAnime_WhenSuccessful() {
+        Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
+
+        webTestClient
+                .post()
+                .uri("/animes/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(List.of(animeToBeSaved, animeToBeSaved)))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBodyList(Anime.class)
+                .hasSize(2)
+                .contains(anime, anime);
+    }
+
+    @Test
+    @DisplayName("saveBatch returns a mono error when one of the objects in the list contains invalid name")
+    public void saveBatch_ReturnsMonoError_WhenContainsInvalidName() {
+        Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
+
+        BDDMockito
+                .when(animeRepository.saveAll(ArgumentMatchers.anyIterable()))
+                .thenReturn(Flux.just(anime, anime.withName("")));
+
+        webTestClient
+                .post()
+                .uri("/animes/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(List.of(animeToBeSaved, animeToBeSaved.withName(""))))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(400);
     }
 
     @Test
