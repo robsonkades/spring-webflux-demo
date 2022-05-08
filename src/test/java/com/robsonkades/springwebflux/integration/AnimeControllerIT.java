@@ -21,20 +21,17 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import com.robsonkades.springwebflux.domain.Anime;
-import com.robsonkades.springwebflux.exception.CustomAttributes;
 import com.robsonkades.springwebflux.repository.AnimeRepository;
-import com.robsonkades.springwebflux.service.AnimeService;
 import com.robsonkades.springwebflux.util.AnimeCreator;
+import com.robsonkades.springwebflux.util.WebTestClientUtil;
 
 @ExtendWith(SpringExtension.class)
 //@WebFluxTest
@@ -47,7 +44,11 @@ public class AnimeControllerIT {
     private AnimeRepository animeRepository;
 
     @Autowired
-    private WebTestClient webTestClient;
+    private WebTestClientUtil webTestClientUtil;
+
+    private WebTestClient webTestClientUser;
+    private WebTestClient webTestClientAdmin;
+    private WebTestClient webTestClientInvalid;
 
     private final Anime anime = AnimeCreator.createValidAnime();
 
@@ -77,6 +78,10 @@ public class AnimeControllerIT {
 
     @BeforeEach
     public void each() {
+        this.webTestClientUser = webTestClientUtil.authenticateClient("user", "admin");
+        this.webTestClientAdmin = webTestClientUtil.authenticateClient("admin", "admin");
+        this.webTestClientInvalid = webTestClientUtil.authenticateClient("xx", "xx");
+
         BDDMockito
                 .when(animeRepository.findAll())
                 .thenReturn(Flux.just(anime));
@@ -105,7 +110,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("findAll returns a flux of anime")
     public void findAll_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClient
+        webTestClientUser
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -118,7 +123,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("findAll returns a flux of anime")
     public void findAll_Flavor2_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClient
+        webTestClientUser
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -131,7 +136,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("findById returns Mono with anime when it exists")
     public void findById_ReturnMonoOfAnime_WhenSuccessful() {
-        webTestClient
+        webTestClientUser
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -147,7 +152,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClient
+        webTestClientUser
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -161,7 +166,7 @@ public class AnimeControllerIT {
     @DisplayName("save creates an anime when successful")
     public void save_CreatesAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
-        webTestClient
+        webTestClientUser
                 .post()
                 .uri("/animes")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -177,7 +182,7 @@ public class AnimeControllerIT {
     public void saveBatch_CreatesListOfAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
 
-        webTestClient
+        webTestClientUser
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -198,7 +203,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.saveAll(ArgumentMatchers.anyIterable()))
                 .thenReturn(Flux.just(anime, anime.withName("")));
 
-        webTestClient
+        webTestClientUser
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -213,7 +218,7 @@ public class AnimeControllerIT {
     @DisplayName("save returns mono error with bad request when name is empty")
     public void save_ReturnsError_WhenNameIsEmpty() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved().withName("");
-        webTestClient
+        webTestClientUser
                 .post()
                 .uri("/animes/")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -227,7 +232,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("delete removes the anime when successful")
     public void delete_RemovesAnime_WhenSuccessful() {
-        webTestClient
+        webTestClientUser
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -241,7 +246,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClient
+        webTestClientUser
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -253,7 +258,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("update save updated anime and return empty mono when successful")
     public void update_SaveUpdatedAnime_WhenSuccessful() {
-        webTestClient
+        webTestClientUser
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -270,7 +275,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClient
+        webTestClientUser
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
