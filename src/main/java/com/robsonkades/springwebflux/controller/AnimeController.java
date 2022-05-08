@@ -1,5 +1,9 @@
 package com.robsonkades.springwebflux.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -28,6 +32,11 @@ import com.robsonkades.springwebflux.service.AnimeService;
 @RequestMapping("animes")
 @RestController
 @Slf4j
+@SecurityScheme(
+        name = "Basic authentication",
+        type = SecuritySchemeType.HTTP,
+        scheme = "basic"
+)
 public class AnimeController {
 
     private final AnimeService animeService;
@@ -35,36 +44,42 @@ public class AnimeController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Flux<Anime> listAll() {
         return animeService.findAll();
     }
 
     @GetMapping(path = "{id}")
     @ResponseStatus(HttpStatus.OK)
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Mono<Anime> findById(@PathVariable("id") Integer id) {
         return animeService.findById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Mono<Anime> create(@Valid @RequestBody Anime anime) {
         return animeService.save(anime);
     }
 
     @PostMapping("batch")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Flux<Anime> batch(@RequestBody List<Anime> anime) {
         return animeService.saveBatch(anime);
     }
 
     @PutMapping(path = "{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Mono<Void> update(@PathVariable() Integer id, @Valid @RequestBody Anime anime) {
         return animeService.update(anime.withId(id));
     }
 
     @DeleteMapping(path = "{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(tags = {"anime"}, security = @SecurityRequirement(name = "Basic authentication"))
     public Mono<Void> delete(@PathVariable() Integer id) {
         return animeService.delete(id);
     }
