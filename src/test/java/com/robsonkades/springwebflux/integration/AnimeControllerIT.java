@@ -24,6 +24,8 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -46,9 +48,11 @@ public class AnimeControllerIT {
     @Autowired
     private WebTestClientUtil webTestClientUtil;
 
-    private WebTestClient webTestClientUser;
-    private WebTestClient webTestClientAdmin;
-    private WebTestClient webTestClientInvalid;
+    @Autowired
+    private WebTestClient client;
+//    private WebTestClient webTestClientUser;
+//    private WebTestClient webTestClientAdmin;
+//    private WebTestClient webTestClientInvalid;
 
     private final Anime anime = AnimeCreator.createValidAnime();
 
@@ -78,9 +82,9 @@ public class AnimeControllerIT {
 
     @BeforeEach
     public void each() {
-        this.webTestClientUser = webTestClientUtil.authenticateClient("user", "admin");
-        this.webTestClientAdmin = webTestClientUtil.authenticateClient("admin", "admin");
-        this.webTestClientInvalid = webTestClientUtil.authenticateClient("xx", "xx");
+//        this.webTestClientUser = webTestClientUtil.authenticateClient("user", "admin");
+//        this.webTestClientAdmin = webTestClientUtil.authenticateClient("admin", "admin");
+//        this.webTestClientInvalid = webTestClientUtil.authenticateClient("xx", "xx");
 
         BDDMockito
                 .when(animeRepository.findAll())
@@ -109,8 +113,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findAll returns a flux of anime when user is successfully authenticated and has role ADMIN")
+    @WithUserDetails("admin")
     public void findAll_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClientAdmin
+        client
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -122,8 +127,10 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findAll returns forbidden when user is successfully authenticated and does not have role ADMIN")
+    @WithUserDetails("user")
+    //@WithMockUser(username = "admin", password = "admin", roles = {"USER"})
     public void findAll_ReturnForbidden_WhenUserDoesNotRoleAdmin() {
-        webTestClientUser
+        client
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -133,7 +140,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("findAll returns unauthorized when user is does not authenticated")
     public void findAll_ReturnUnauthorized_WhenUserIsNotAuthenticated() {
-        webTestClientInvalid
+        client
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -142,8 +149,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findAll returns a flux of anime")
+    @WithUserDetails("admin")
     public void findAll_Flavor2_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClientAdmin
+        client
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -155,8 +163,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findById returns Mono with anime when it exists and authenticated and has role ADMIN")
+    @WithUserDetails("admin")
     public void findById_ReturnMonoOfAnime_WhenSuccessfulAndAuthenticatedWithRoleAdmin() {
-        webTestClientAdmin
+        client
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -168,7 +177,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("findById returns unauthorized with user  when it exists and not authenticated")
     public void findById_ReturnUnauthorized_WhenUserDoesNotAuthenticated() {
-        webTestClientInvalid
+        client
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -177,8 +186,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findById returns Mono with anime when it exists")
+    @WithUserDetails("user")
     public void findById_ReturnMonoOfAnime_WhenSuccessful() {
-        webTestClientUser
+        client
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -191,12 +201,13 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("findById returns Mono error when anime does not exist")
+    @WithUserDetails("user")
     public void findById_ReturnMonoOfError_WhenEmptyMonoIsReturned() {
         BDDMockito
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClientUser
+        client
                 .get()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -208,9 +219,10 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("save creates an anime when successful")
+    @WithUserDetails("admin")
     public void save_CreatesAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
-        webTestClientAdmin
+        client
                 .post()
                 .uri("/animes")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -223,10 +235,11 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("saveBatch creates a list of anime when successful")
+    @WithUserDetails("admin")
     public void saveBatch_CreatesListOfAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
 
-        webTestClientAdmin
+        client
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -240,6 +253,7 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("saveBatch returns a mono error when one of the objects in the list contains invalid name")
+    @WithUserDetails("admin")
     public void saveBatch_ReturnsMonoError_WhenContainsInvalidName() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
 
@@ -247,7 +261,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.saveAll(ArgumentMatchers.anyIterable()))
                 .thenReturn(Flux.just(anime, anime.withName("")));
 
-        webTestClientAdmin
+        client
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -260,9 +274,10 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("save returns mono error with bad request when name is empty")
+    @WithUserDetails("admin")
     public void save_ReturnsError_WhenNameIsEmpty() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved().withName("");
-        webTestClientAdmin
+        client
                 .post()
                 .uri("/animes/")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -275,8 +290,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("delete removes the anime when successful")
+    @WithUserDetails("admin")
     public void delete_RemovesAnime_WhenSuccessful() {
-        webTestClientAdmin
+        client
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -285,12 +301,13 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("delete returns mono error when anime does not exist")
+    @WithUserDetails("admin")
     public void delete_ReturnsMonoError_WhenEmptyMonoIsReturned() {
         BDDMockito
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClientAdmin
+        client
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -301,8 +318,9 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("update save updated anime and return empty mono when successful")
+    @WithUserDetails("admin")
     public void update_SaveUpdatedAnime_WhenSuccessful() {
-        webTestClientAdmin
+        client
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -314,12 +332,13 @@ public class AnimeControllerIT {
 
     @Test
     @DisplayName("update returns Mono error when anime does exist")
+    @WithUserDetails("admin")
     public void update_ReturnMonoError_WhenEmptyMonoIsReturned() {
         BDDMockito
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClientAdmin
+        client
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
