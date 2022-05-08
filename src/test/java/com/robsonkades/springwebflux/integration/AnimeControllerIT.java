@@ -108,9 +108,9 @@ public class AnimeControllerIT {
     }
 
     @Test
-    @DisplayName("findAll returns a flux of anime")
+    @DisplayName("findAll returns a flux of anime when user is successfully authenticated and has role ADMIN")
     public void findAll_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClientUser
+        webTestClientAdmin
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -121,9 +121,29 @@ public class AnimeControllerIT {
     }
 
     @Test
+    @DisplayName("findAll returns forbidden when user is successfully authenticated and does not have role ADMIN")
+    public void findAll_ReturnForbidden_WhenUserDoesNotRoleAdmin() {
+        webTestClientUser
+                .get()
+                .uri("/animes")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    @DisplayName("findAll returns unauthorized when user is does not authenticated")
+    public void findAll_ReturnUnauthorized_WhenUserIsNotAuthenticated() {
+        webTestClientInvalid
+                .get()
+                .uri("/animes")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
     @DisplayName("findAll returns a flux of anime")
     public void findAll_Flavor2_ReturnFluxOfAnime_WhenSuccessful() {
-        webTestClientUser
+        webTestClientAdmin
                 .get()
                 .uri("/animes")
                 .exchange()
@@ -131,6 +151,28 @@ public class AnimeControllerIT {
                 .expectBodyList(Anime.class)
                 .hasSize(1)
                 .contains(anime);
+    }
+
+    @Test
+    @DisplayName("findById returns Mono with anime when it exists and authenticated and has role ADMIN")
+    public void findById_ReturnMonoOfAnime_WhenSuccessfulAndAuthenticatedWithRoleAdmin() {
+        webTestClientAdmin
+                .get()
+                .uri("/animes/{id}", 1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Anime.class)
+                .isEqualTo(anime);
+    }
+
+    @Test
+    @DisplayName("findById returns unauthorized with user  when it exists and not authenticated")
+    public void findById_ReturnUnauthorized_WhenUserDoesNotAuthenticated() {
+        webTestClientInvalid
+                .get()
+                .uri("/animes/{id}", 1)
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
@@ -144,6 +186,8 @@ public class AnimeControllerIT {
                 .expectBody(Anime.class)
                 .isEqualTo(anime);
     }
+
+
 
     @Test
     @DisplayName("findById returns Mono error when anime does not exist")
@@ -166,7 +210,7 @@ public class AnimeControllerIT {
     @DisplayName("save creates an anime when successful")
     public void save_CreatesAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
-        webTestClientUser
+        webTestClientAdmin
                 .post()
                 .uri("/animes")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -182,7 +226,7 @@ public class AnimeControllerIT {
     public void saveBatch_CreatesListOfAnime_WhenSuccessful() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved();
 
-        webTestClientUser
+        webTestClientAdmin
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -203,7 +247,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.saveAll(ArgumentMatchers.anyIterable()))
                 .thenReturn(Flux.just(anime, anime.withName("")));
 
-        webTestClientUser
+        webTestClientAdmin
                 .post()
                 .uri("/animes/batch")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -218,7 +262,7 @@ public class AnimeControllerIT {
     @DisplayName("save returns mono error with bad request when name is empty")
     public void save_ReturnsError_WhenNameIsEmpty() {
         Anime animeToBeSaved = AnimeCreator.createAnimeToBeSaved().withName("");
-        webTestClientUser
+        webTestClientAdmin
                 .post()
                 .uri("/animes/")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -232,7 +276,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("delete removes the anime when successful")
     public void delete_RemovesAnime_WhenSuccessful() {
-        webTestClientUser
+        webTestClientAdmin
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -246,7 +290,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClientUser
+        webTestClientAdmin
                 .delete()
                 .uri("/animes/{id}", 1)
                 .exchange()
@@ -258,7 +302,7 @@ public class AnimeControllerIT {
     @Test
     @DisplayName("update save updated anime and return empty mono when successful")
     public void update_SaveUpdatedAnime_WhenSuccessful() {
-        webTestClientUser
+        webTestClientAdmin
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -275,7 +319,7 @@ public class AnimeControllerIT {
                 .when(animeRepository.findById(ArgumentMatchers.anyInt()))
                 .thenReturn(Mono.empty());
 
-        webTestClientUser
+        webTestClientAdmin
                 .put()
                 .uri("/animes/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
